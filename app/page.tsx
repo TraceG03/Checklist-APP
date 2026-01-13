@@ -6,8 +6,9 @@ import { format } from 'date-fns'
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { date?: string }
+  searchParams: Promise<{ date?: string }>
 }) {
+  const params = await searchParams
   const supabase = await createClient()
 
   const {
@@ -18,7 +19,7 @@ export default async function Home({
     return redirect('/login')
   }
 
-  const date = searchParams.date || format(new Date(), 'yyyy-MM-dd')
+  const date = params.date || format(new Date(), 'yyyy-MM-dd')
 
   const { data: tasks } = await supabase
     .from('tasks')
