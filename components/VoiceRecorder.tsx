@@ -56,7 +56,13 @@ export function VoiceRecorder({ date }: { date: string }) {
     formData.append('audio', file)
 
     try {
-      await processVoiceMemo(formData, date)
+      const res = await processVoiceMemo(formData, date)
+      if (!res.ok) {
+        setErrorMessage(res.error)
+        setStatus('error')
+        return
+      }
+
       setStatus('success')
       // Reset to idle after a few seconds
       setTimeout(() => setStatus('idle'), 3000)

@@ -362,7 +362,12 @@ export function Dashboard({
                           )}
                         </div>
                         <button
-                          onClick={() => deleteVoiceMemo(memo.id)}
+                          onClick={async () => {
+                            const res = await deleteVoiceMemo(memo.id)
+                            if (!res.ok) {
+                              alert(res.error)
+                            }
+                          }}
                           className="ml-4 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Delete voice memo"
                         >

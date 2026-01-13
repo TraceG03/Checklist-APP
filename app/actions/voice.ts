@@ -3,23 +3,31 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import OpenAI from 'openai'
-import { Database } from '@/types/database.types'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function processVoiceMemo(formData: FormData, date: string) {
+type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
+
+export async function processVoiceMemo(
+  formData: FormData,
+  date: string
+): Promise<ActionResult<{ count: number }>> {
   const file = formData.get('audio') as File
   if (!file) {
-    throw new Error('No audio file provided')
+    return { ok: false, error: 'No audio file provided' }
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return { ok: false, error: 'OPENAI_API_KEY is not configured on the server.' }
   }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('Unauthorized')
+    return { ok: false, error: 'Unauthorized' }
   }
 
   // 1. Upload to Supabase Storage
@@ -29,7 +37,7 @@ export async function processVoiceMemo(formData: FormData, date: string) {
     .upload(filename, file)
 
   if (uploadError) {
-    throw new Error(`Upload failed: ${uploadError.message}`)
+    return { ok: false, error: `Upload failed: ${uploadError.message}` }
   }
 
   // 2. Create voice_memos record
@@ -45,7 +53,7 @@ export async function processVoiceMemo(formData: FormData, date: string) {
     .single()
 
   if (dbError) {
-    throw new Error(`DB insert failed: ${dbError.message}`)
+    return { ok: false, error: `DB insert failed: ${dbError.message}` }
   }
 
   try {
@@ -126,7 +134,7 @@ export async function processVoiceMemo(formData: FormData, date: string) {
       .eq('id', memoData.id)
 
     revalidatePath('/')
-    return { success: true, count: tasks.length }
+    return { ok: true, data: { count: tasks.length } }
 
   } catch (err: any) {
     // Log error to DB
@@ -137,17 +145,17 @@ export async function processVoiceMemo(formData: FormData, date: string) {
         transcript_status: 'error', // or extract_status depending on where it failed, simplifying here
       })
       .eq('id', memoData.id)
-    
-    throw err
+
+    return { ok: false, error: err?.message || 'Failed to process voice memo' }
   }
 }
 
-export async function deleteVoiceMemo(id: string) {
+export async function deleteVoiceMemo(id: string): Promise<ActionResult<{}>> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('Unauthorized')
+    return { ok: false, error: 'Unauthorized' }
   }
 
   // Get the memo to find the audio path
@@ -173,8 +181,9 @@ export async function deleteVoiceMemo(id: string) {
     .eq('user_id', user.id)
 
   if (error) {
-    throw new Error(error.message)
+    return { ok: false, error: error.message }
   }
 
   revalidatePath('/')
+  return { ok: true, data: {} }
 }
