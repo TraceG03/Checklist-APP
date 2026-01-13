@@ -6,6 +6,7 @@ import { format, addWeeks, subWeeks, parseISO, addDays, isToday, isSameDay } fro
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { addTask, toggleTask, deleteTask, signOut } from '@/app/actions/tasks'
+import { deleteVoiceMemo } from '@/app/actions/voice'
 import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar } from 'lucide-react'
 import { VoiceRecorder } from './VoiceRecorder'
 
@@ -336,7 +337,7 @@ export function Dashboard({
                   </div>
                 ) : (
                   voiceMemos.map((memo) => (
-                    <div key={memo.id} className="p-4 hover:bg-gray-50">
+                    <div key={memo.id} className="group p-4 hover:bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -376,6 +377,13 @@ export function Dashboard({
                             </p>
                           )}
                         </div>
+                        <button
+                          onClick={() => deleteVoiceMemo(memo.id)}
+                          className="ml-4 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete voice memo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))

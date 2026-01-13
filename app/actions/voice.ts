@@ -141,3 +141,40 @@ export async function processVoiceMemo(formData: FormData, date: string) {
     throw err
   }
 }
+
+export async function deleteVoiceMemo(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Get the memo to find the audio path
+  const { data: memo } = await supabase
+    .from('voice_memos')
+    .select('audio_path')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (memo?.audio_path) {
+    // Delete from storage
+    await supabase.storage
+      .from('voice-memos')
+      .remove([memo.audio_path])
+  }
+
+  // Delete from database
+  const { error } = await supabase
+    .from('voice_memos')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/')
+}
