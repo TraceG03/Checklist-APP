@@ -15,7 +15,7 @@ export type Database = {
           user_id: string
           title: string
           notes: string | null
-          due_date: string
+          due_date: string | null
           completed: boolean
           source: 'manual' | 'ai' | 'voice'
           created_at: string
@@ -26,7 +26,7 @@ export type Database = {
           user_id?: string
           title: string
           notes?: string | null
-          due_date?: string
+          due_date?: string | null
           completed?: boolean
           source?: 'manual' | 'ai' | 'voice'
           created_at?: string
@@ -37,7 +37,7 @@ export type Database = {
           user_id?: string
           title?: string
           notes?: string | null
-          due_date?: string
+          due_date?: string | null
           completed?: boolean
           source?: 'manual' | 'ai' | 'voice'
           created_at?: string

@@ -26,14 +26,14 @@ export default async function Home({
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
 
-  // Fetch tasks for the entire week
+  // Fetch ALL tasks (undated + dated). Weekly view will only render tasks that have a due_date.
   const { data: tasks } = await supabase
     .from('tasks')
     .select('*')
     .eq('user_id', user.id)
-    .gte('due_date', format(weekStart, 'yyyy-MM-dd'))
-    .lte('due_date', format(weekEnd, 'yyyy-MM-dd'))
+    .order('due_date', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true })
+    .limit(500)
 
   // Fetch voice memos (all, ordered by newest first)
   const { data: voiceMemos } = await supabase

@@ -7,7 +7,7 @@ create table tasks (
   user_id uuid references auth.users not null default auth.uid(),
   title text not null,
   notes text,
-  due_date date not null default current_date,
+  due_date date,
   completed boolean default false,
   source text not null default 'manual' check (source in ('manual', 'ai', 'voice')),
   created_at timestamptz default now(),

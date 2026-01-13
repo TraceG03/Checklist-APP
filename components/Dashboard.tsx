@@ -5,7 +5,7 @@ import { Database } from '@/types/database.types'
 import { format, addWeeks, subWeeks, parseISO, addDays, isToday, isSameDay } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { addTask, toggleTask, deleteTask, signOut } from '@/app/actions/tasks'
+import { addTask, toggleTask, deleteTask, signOut, updateTask } from '@/app/actions/tasks'
 import { deleteVoiceMemo } from '@/app/actions/voice'
 import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar, ClipboardCheck } from 'lucide-react'
 import { VoiceRecorder } from './VoiceRecorder'
@@ -50,9 +50,12 @@ export function Dashboard({
   // Generate array of 7 days for the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStartDate, i))
 
-  // Group tasks by date
-  const tasksByDate = tasks.reduce((acc, task) => {
-    const dateKey = task.due_date
+  const undatedTasks = tasks.filter((t) => !t.due_date)
+  const datedTasks = tasks.filter((t) => !!t.due_date)
+
+  // Group only dated tasks by date
+  const tasksByDate = datedTasks.reduce((acc, task) => {
+    const dateKey = task.due_date as string
     if (!acc[dateKey]) acc[dateKey] = []
     acc[dateKey].push(task)
     return acc
@@ -72,7 +75,7 @@ export function Dashboard({
     router.push(`/?date=${format(new Date(), 'yyyy-MM-dd')}`)
   }
 
-  const handleAddTask = async (e: React.FormEvent, date: string) => {
+  const handleAddTask = async (e: React.FormEvent, date: string | null) => {
     e.preventDefault()
     if (!newTaskTitle.trim()) return
 
@@ -83,6 +86,10 @@ export function Dashboard({
     })
     setNewTaskTitle('')
     setAddingTaskForDay(null)
+  }
+
+  const handleAssignDate = async (taskId: string, dueDate: string | null) => {
+    await updateTask(taskId, { due_date: dueDate })
   }
 
   return (
@@ -181,7 +188,115 @@ export function Dashboard({
 
           {/* Weekly Tasks Tab Content - Document Style */}
           {activeTab === 'tasks' && (
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-8">
+              {/* All Tasks (single list). Only tasks with a date appear under days below. */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <ListTodo className="w-5 h-5 text-indigo-600" />
+                    All Tasks
+                  </h2>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                    {tasks.length}
+                  </span>
+                </div>
+
+                {/* Add undated task */}
+                <form onSubmit={(e) => handleAddTask(e, null)} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Add a task (no date)..."
+                    className="flex-1 rounded border-gray-300 px-3 py-2 text-sm border focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newTaskTitle.trim()}
+                    className="inline-flex items-center gap-2 rounded bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add
+                  </button>
+                </form>
+
+                <div className="divide-y rounded-lg border bg-white">
+                  {tasks.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500">No tasks yet.</div>
+                  ) : (
+                    tasks.map((task) => (
+                      <div key={task.id} className="group flex items-start gap-3 p-3">
+                        <button
+                          onClick={() => toggleTask(task.id, !task.completed)}
+                          className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            task.completed
+                              ? 'border-green-500 bg-green-500 text-white'
+                              : 'border-gray-400 hover:border-indigo-500'
+                          }`}
+                          title="Toggle complete"
+                        >
+                          {task.completed && <Check className="w-3 h-3" />}
+                        </button>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-sm ${
+                                task.completed
+                                  ? 'text-gray-400 line-through'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                            {task.source !== 'manual' && (
+                              <span className="text-xs text-indigo-500">(AI)</span>
+                            )}
+                          </div>
+                          {task.notes && (
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {task.notes}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={task.due_date || ''}
+                            onChange={(e) =>
+                              handleAssignDate(
+                                task.id,
+                                e.target.value ? e.target.value : null
+                              )
+                            }
+                            className="text-xs rounded border-gray-300 border px-2 py-1"
+                            title="Assign to a day (optional)"
+                          />
+                          {task.due_date && (
+                            <button
+                              onClick={() => handleAssignDate(task.id, null)}
+                              className="text-xs text-gray-400 hover:text-gray-700"
+                              title="Remove date"
+                            >
+                              Clear
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              {/* Weekly Document View (dated tasks only) */}
               {weekDays.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd')
                 const dayTasks = tasksByDate[dateStr] || []
