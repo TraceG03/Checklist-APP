@@ -21,6 +21,7 @@ export default async function Home({
 
   const date = params.date || format(new Date(), 'yyyy-MM-dd')
 
+  // Fetch tasks for the selected date
   const { data: tasks } = await supabase
     .from('tasks')
     .select('*')
@@ -28,5 +29,20 @@ export default async function Home({
     .eq('due_date', date)
     .order('created_at', { ascending: true })
 
-  return <Dashboard user={user} tasks={tasks || []} date={date} />
+  // Fetch voice memos (all, ordered by newest first)
+  const { data: voiceMemos } = await supabase
+    .from('voice_memos')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  return (
+    <Dashboard
+      user={user}
+      tasks={tasks || []}
+      voiceMemos={voiceMemos || []}
+      date={date}
+    />
+  )
 }
