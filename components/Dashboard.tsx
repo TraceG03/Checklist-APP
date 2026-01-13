@@ -41,7 +41,6 @@ export function Dashboard({
   const getPhotoUrl = (path: string) => {
     return `${supabaseUrl}/storage/v1/object/public/inspection-photos/${path}`
   }
-  const [expandedDay, setExpandedDay] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'))
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingTaskForDay, setAddingTaskForDay] = useState<string | null>(null)
 
@@ -84,10 +83,6 @@ export function Dashboard({
     })
     setNewTaskTitle('')
     setAddingTaskForDay(null)
-  }
-
-  const toggleDayExpanded = (dateStr: string) => {
-    setExpandedDay(expandedDay === dateStr ? null : dateStr)
   }
 
   return (
@@ -184,153 +179,113 @@ export function Dashboard({
             </button>
           </div>
 
-          {/* Weekly Tasks Tab Content */}
+          {/* Weekly Tasks Tab Content - Document Style */}
           {activeTab === 'tasks' && (
-            <div className="divide-y divide-gray-200">
+            <div className="p-6 space-y-6">
               {weekDays.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd')
                 const dayTasks = tasksByDate[dateStr] || []
-                const isExpanded = expandedDay === dateStr
-                const completedCount = dayTasks.filter(t => t.completed).length
                 const today = isToday(day)
 
                 return (
-                  <div key={dateStr} className={`${today ? 'bg-indigo-50/50' : ''}`}>
-                    {/* Day Header */}
-                    <button
-                      onClick={() => toggleDayExpanded(dateStr)}
-                      className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${
-                        today ? 'hover:bg-indigo-50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                          today 
-                            ? 'bg-indigo-600 text-white' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {format(day, 'd')}
-                        </div>
-                        <div className="text-left">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${today ? 'text-indigo-600' : 'text-gray-900'}`}>
-                              {format(day, 'EEEE')}
-                            </span>
-                            {today && (
-                              <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">
-                                Today
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            {format(day, 'MMMM d')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {dayTasks.length > 0 && (
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            completedCount === dayTasks.length
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {completedCount}/{dayTasks.length}
+                  <div key={dateStr} className="space-y-2">
+                    {/* Day Header - Document Style */}
+                    <div className={`flex items-center justify-between border-b-2 pb-2 ${
+                      today ? 'border-indigo-500' : 'border-gray-300'
+                    }`}>
+                      <h3 className={`text-lg font-bold ${today ? 'text-indigo-600' : 'text-gray-800'}`}>
+                        {format(day, 'EEEE, MMMM d')}
+                        {today && (
+                          <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-normal">
+                            Today
                           </span>
                         )}
-                        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${
-                          isExpanded ? 'rotate-90' : ''
-                        }`} />
-                      </div>
-                    </button>
+                      </h3>
+                    </div>
 
-                    {/* Expanded Day Content */}
-                    {isExpanded && (
-                      <div className="px-4 pb-4">
-                        {/* Tasks List */}
-                        <div className="ml-6 pl-6 border-l-2 border-gray-200 space-y-2">
-                          {dayTasks.length === 0 ? (
-                            <p className="text-sm text-gray-400 py-2">No tasks for this day</p>
-                          ) : (
-                            dayTasks.map((task) => (
-                              <div
-                                key={task.id}
-                                className={`group flex items-center gap-3 py-2 ${
-                                  task.completed ? 'opacity-60' : ''
+                    {/* Tasks - Bullet Point Style */}
+                    <div className="pl-4">
+                      {dayTasks.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic">No tasks scheduled</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {dayTasks.map((task) => (
+                            <li
+                              key={task.id}
+                              className="group flex items-start gap-3"
+                            >
+                              <button
+                                onClick={() => toggleTask(task.id, !task.completed)}
+                                className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                  task.completed
+                                    ? 'border-green-500 bg-green-500 text-white'
+                                    : 'border-gray-400 hover:border-indigo-500'
                                 }`}
                               >
-                                <button
-                                  onClick={() => toggleTask(task.id, !task.completed)}
-                                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                    task.completed
-                                      ? 'border-green-500 bg-green-500 text-white'
-                                      : 'border-gray-300 hover:border-indigo-500'
-                                  }`}
-                                >
-                                  {task.completed && <Check className="w-3 h-3" />}
-                                </button>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${
-                                    task.completed ? 'text-gray-400 line-through' : 'text-gray-900'
-                                  }`}>
-                                    {task.title}
-                                  </p>
-                                  {task.source !== 'manual' && (
-                                    <span className="text-xs text-indigo-600">
-                                      🤖 AI extracted
-                                    </span>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() => deleteTask(task.id)}
-                                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                {task.completed && <Check className="w-3 h-3" />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <span className={`text-sm ${
+                                  task.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+                                }`}>
+                                  {task.title}
+                                </span>
+                                {task.source !== 'manual' && (
+                                  <span className="ml-2 text-xs text-indigo-500">
+                                    (AI)
+                                  </span>
+                                )}
                               </div>
-                            ))
-                          )}
+                              <button
+                                onClick={() => deleteTask(task.id)}
+                                className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
 
-                          {/* Add Task Form */}
-                          {addingTaskForDay === dateStr ? (
-                            <form onSubmit={(e) => handleAddTask(e, dateStr)} className="flex gap-2 pt-2">
-                              <input
-                                type="text"
-                                value={newTaskTitle}
-                                onChange={(e) => setNewTaskTitle(e.target.value)}
-                                placeholder="Task title..."
-                                autoFocus
-                                className="flex-1 text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-1.5 border"
-                              />
-                              <button
-                                type="submit"
-                                disabled={!newTaskTitle.trim()}
-                                className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                              >
-                                Add
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAddingTaskForDay(null)
-                                  setNewTaskTitle('')
-                                }}
-                                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                              >
-                                Cancel
-                              </button>
-                            </form>
-                          ) : (
-                            <button
-                              onClick={() => setAddingTaskForDay(dateStr)}
-                              className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 pt-2"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Add task
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                      {/* Add Task */}
+                      {addingTaskForDay === dateStr ? (
+                        <form onSubmit={(e) => handleAddTask(e, dateStr)} className="flex gap-2 mt-2">
+                          <input
+                            type="text"
+                            value={newTaskTitle}
+                            onChange={(e) => setNewTaskTitle(e.target.value)}
+                            placeholder="New task..."
+                            autoFocus
+                            className="flex-1 text-sm rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-2 py-1 border"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!newTaskTitle.trim()}
+                            className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddingTaskForDay(null)
+                              setNewTaskTitle('')
+                            }}
+                            className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          onClick={() => setAddingTaskForDay(dateStr)}
+                          className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 mt-2"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add task
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )
               })}
