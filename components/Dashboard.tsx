@@ -220,78 +220,83 @@ export function Dashboard({
                   </button>
                 </form>
 
-                <div className="divide-y rounded-lg border bg-white">
+                <div className="space-y-2">
                   {tasks.length === 0 ? (
-                    <div className="p-4 text-sm text-gray-500">No tasks yet.</div>
+                    <div className="text-sm text-gray-500">No tasks yet.</div>
                   ) : (
-                    tasks.map((task) => (
-                      <div key={task.id} className="group flex items-start gap-3 p-3">
-                        <button
-                          onClick={() => toggleTask(task.id, !task.completed)}
-                          className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                            task.completed
-                              ? 'border-green-500 bg-green-500 text-white'
-                              : 'border-gray-400 hover:border-indigo-500'
-                          }`}
-                          title="Toggle complete"
-                        >
-                          {task.completed && <Check className="w-3 h-3" />}
-                        </button>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-sm ${
-                                task.completed
-                                  ? 'text-gray-400 line-through'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {task.title}
-                            </span>
-                            {task.source !== 'manual' && (
-                              <span className="text-xs text-indigo-500">(AI)</span>
-                            )}
-                          </div>
-                          {task.notes && (
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {task.notes}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="date"
-                            value={task.due_date || ''}
-                            onChange={(e) =>
-                              handleAssignDate(
-                                task.id,
-                                e.target.value ? e.target.value : null
-                              )
-                            }
-                            className="text-xs rounded border-gray-300 border px-2 py-1"
-                            title="Assign to a day (optional)"
-                          />
-                          {task.due_date && (
+                    <ul className="space-y-2">
+                      {tasks.map((task) => (
+                        <li key={task.id} className="group">
+                          <div className="flex items-start gap-3">
                             <button
-                              onClick={() => handleAssignDate(task.id, null)}
-                              className="text-xs text-gray-400 hover:text-gray-700"
-                              title="Remove date"
+                              onClick={() => toggleTask(task.id, !task.completed)}
+                              className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                task.completed
+                                  ? 'border-green-500 bg-green-500 text-white'
+                                  : 'border-gray-400 hover:border-indigo-500'
+                              }`}
+                              title="Toggle complete"
                             >
-                              Clear
+                              {task.completed && <Check className="w-3 h-3" />}
                             </button>
-                          )}
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400 select-none">•</span>
+                                <span
+                                  className={`text-sm ${
+                                    task.completed
+                                      ? 'text-gray-400 line-through'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {task.title}
+                                </span>
+                                {task.source !== 'manual' && (
+                                  <span className="text-xs text-indigo-500">(AI)</span>
+                                )}
+                              </div>
+                              {task.notes && (
+                                <div className="text-xs text-gray-500 mt-0.5 ml-5">
+                                  {task.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={task.due_date || ''}
+                                onChange={(e) =>
+                                  handleAssignDate(
+                                    task.id,
+                                    e.target.value ? e.target.value : null
+                                  )
+                                }
+                                className="text-xs rounded border-gray-300 border px-2 py-1 bg-white"
+                                title="Assign to a day (optional)"
+                              />
+                              {task.due_date && (
+                                <button
+                                  onClick={() => handleAssignDate(task.id, null)}
+                                  className="text-xs text-gray-400 hover:text-gray-700"
+                                  title="Remove date"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                              <button
+                                onClick={() => deleteTask(task.id)}
+                                className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Delete task"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               </section>
