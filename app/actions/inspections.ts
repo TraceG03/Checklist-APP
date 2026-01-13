@@ -8,11 +8,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Create a new inspection
+// Create a new daily inspection
 export async function createInspection(data: {
   title: string
-  inspection_type: 'construction' | 'property'
-  location?: string
+  inspection_date: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,8 +22,7 @@ export async function createInspection(data: {
     .from('inspections')
     .insert({
       title: data.title,
-      inspection_type: data.inspection_type,
-      location: data.location || null,
+      inspection_date: data.inspection_date,
       user_id: user.id,
     })
     .select()
@@ -237,7 +235,7 @@ export async function generateInspectionReport(inspectionId: string) {
     messages: [
       {
         role: 'system',
-        content: `You are a professional inspection report writer for ${inspection.inspection_type} inspections.
+        content: `You are a professional daily inspection report writer.
         
 Generate a formal inspection report summary based on the findings provided.
 The report should include:
@@ -250,9 +248,7 @@ Keep the tone professional and concise. Focus on the facts from the transcripts 
       {
         role: 'user',
         content: `Inspection: ${inspection.title}
-Type: ${inspection.inspection_type}
-Location: ${inspection.location || 'Not specified'}
-Date: ${new Date(inspection.created_at).toLocaleDateString()}
+Date: ${inspection.inspection_date}
 
 Findings:
 ${findingsContext}`

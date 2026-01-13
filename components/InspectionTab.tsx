@@ -19,14 +19,11 @@ import {
   Trash2,
   FileText,
   ChevronRight,
-  Building2,
-  Home,
   Loader2,
   Image,
   AudioLines,
-  MapPin,
   CheckCircle,
-  AlertCircle,
+  Calendar,
 } from 'lucide-react'
 
 type Inspection = Database['public']['Tables']['inspections']['Row']
@@ -56,8 +53,7 @@ export function InspectionTab({
 
   // New inspection form state
   const [newTitle, setNewTitle] = useState('')
-  const [newType, setNewType] = useState<'construction' | 'property'>('construction')
-  const [newLocation, setNewLocation] = useState('')
+  const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   const handleCreateInspection = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,11 +63,10 @@ export function InspectionTab({
     try {
       await createInspection({
         title: newTitle,
-        inspection_type: newType,
-        location: newLocation || undefined,
+        inspection_date: newDate,
       })
       setNewTitle('')
-      setNewLocation('')
+      setNewDate(format(new Date(), 'yyyy-MM-dd'))
       setShowNewForm(false)
     } catch (err) {
       console.error(err)
@@ -155,10 +150,10 @@ export function InspectionTab({
           <div>
             <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
               <FileText className="w-5 h-5 text-amber-600" />
-              Inspections
+              Daily Inspections
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Create inspection reports with photos and voice memos
+              Create daily inspection reports with photos and voice memos
             </p>
           </div>
           <button
@@ -190,43 +185,12 @@ export function InspectionTab({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="type"
-                      checked={newType === 'construction'}
-                      onChange={() => setNewType('construction')}
-                      className="text-amber-600 focus:ring-amber-500"
-                    />
-                    <Building2 className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">Construction</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="type"
-                      checked={newType === 'property'}
-                      onChange={() => setNewType('property')}
-                      className="text-amber-600 focus:ring-amber-500"
-                    />
-                    <Home className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">Property</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location (optional)
+                  Date
                 </label>
                 <input
-                  type="text"
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  placeholder="e.g., 123 Main Street, City"
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 text-sm px-3 py-2 border"
                 />
               </div>
@@ -273,16 +237,8 @@ export function InspectionTab({
                   className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      inspection.inspection_type === 'construction'
-                        ? 'bg-amber-100 text-amber-600'
-                        : 'bg-blue-100 text-blue-600'
-                    }`}>
-                      {inspection.inspection_type === 'construction' ? (
-                        <Building2 className="w-5 h-5" />
-                      ) : (
-                        <Home className="w-5 h-5" />
-                      )}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-amber-600">
+                      <Calendar className="w-5 h-5" />
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2">
@@ -292,14 +248,8 @@ export function InspectionTab({
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>{format(new Date(inspection.created_at), 'MMM d, yyyy')}</span>
-                        {inspection.location && (
-                          <>
-                            <span>•</span>
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate max-w-[150px]">{inspection.location}</span>
-                          </>
-                        )}
+                        <Calendar className="w-3 h-3" />
+                        <span>{format(new Date(inspection.inspection_date), 'EEEE, MMMM d, yyyy')}</span>
                       </div>
                     </div>
                   </div>

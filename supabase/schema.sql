@@ -77,13 +77,12 @@ create policy "Users can upload their own voice memos"
   on storage.objects for insert
   with check ( bucket_id = 'voice-memos' and auth.uid()::text = (storage.foldername(name))[1] );
 
--- INSPECTIONS TABLE
+-- INSPECTIONS TABLE (Daily Inspections)
 create table inspections (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null default auth.uid(),
   title text not null,
-  inspection_type text not null check (inspection_type in ('construction', 'property')),
-  location text,
+  inspection_date date not null default current_date,
   status text not null default 'draft' check (status in ('draft', 'completed')),
   report_summary text,
   created_at timestamptz default now(),

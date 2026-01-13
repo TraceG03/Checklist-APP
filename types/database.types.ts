@@ -86,8 +86,7 @@ export type Database = {
           id: string
           user_id: string
           title: string
-          inspection_type: 'construction' | 'property'
-          location: string | null
+          inspection_date: string
           status: 'draft' | 'completed'
           report_summary: string | null
           created_at: string
@@ -97,8 +96,7 @@ export type Database = {
           id?: string
           user_id?: string
           title: string
-          inspection_type: 'construction' | 'property'
-          location?: string | null
+          inspection_date?: string
           status?: 'draft' | 'completed'
           report_summary?: string | null
           created_at?: string
@@ -108,8 +106,7 @@ export type Database = {
           id?: string
           user_id?: string
           title?: string
-          inspection_type?: 'construction' | 'property'
-          location?: string | null
+          inspection_date?: string
           status?: 'draft' | 'completed'
           report_summary?: string | null
           created_at?: string
