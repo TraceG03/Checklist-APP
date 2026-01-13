@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { Dashboard } from '@/components/Dashboard'
-import { format } from 'date-fns'
+import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns'
 
 export default async function Home({
   searchParams,
@@ -19,14 +19,20 @@ export default async function Home({
     return redirect('/login')
   }
 
-  const date = params.date || format(new Date(), 'yyyy-MM-dd')
+  // Use the date param or default to today
+  const selectedDate = params.date ? parseISO(params.date) : new Date()
+  
+  // Get the week boundaries (Monday to Sunday)
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
 
-  // Fetch tasks for the selected date
+  // Fetch tasks for the entire week
   const { data: tasks } = await supabase
     .from('tasks')
     .select('*')
     .eq('user_id', user.id)
-    .eq('due_date', date)
+    .gte('due_date', format(weekStart, 'yyyy-MM-dd'))
+    .lte('due_date', format(weekEnd, 'yyyy-MM-dd'))
     .order('created_at', { ascending: true })
 
   // Fetch voice memos (all, ordered by newest first)
@@ -42,7 +48,7 @@ export default async function Home({
       user={user}
       tasks={tasks || []}
       voiceMemos={voiceMemos || []}
-      date={date}
+      weekStart={format(weekStart, 'yyyy-MM-dd')}
     />
   )
 }

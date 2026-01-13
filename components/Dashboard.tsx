@@ -2,11 +2,11 @@
 
 import { User } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
-import { format, addDays, subDays, parseISO } from 'date-fns'
+import { format, addWeeks, subWeeks, parseISO, addDays, isToday, isSameDay } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { addTask, toggleTask, deleteTask, signOut } from '@/app/actions/tasks'
-import { Check, Trash2, Plus, LogOut, Mic, Calendar, ListTodo, FileAudio } from 'lucide-react'
+import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar } from 'lucide-react'
 import { VoiceRecorder } from './VoiceRecorder'
 
 type Task = Database['public']['Tables']['tasks']['Row']
@@ -16,34 +16,48 @@ export function Dashboard({
   user,
   tasks,
   voiceMemos,
-  date,
+  weekStart,
 }: {
   user: User
   tasks: Task[]
   voiceMemos: VoiceMemo[]
-  date: string
+  weekStart: string
 }) {
   const router = useRouter()
-  const [newTaskTitle, setNewTaskTitle] = useState('')
   const [activeTab, setActiveTab] = useState<'tasks' | 'voice'>('tasks')
+  const [expandedDay, setExpandedDay] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'))
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [addingTaskForDay, setAddingTaskForDay] = useState<string | null>(null)
 
-  const currentDate = parseISO(date)
+  const weekStartDate = parseISO(weekStart)
+  const weekEndDate = addDays(weekStartDate, 6)
 
-  const handlePrevDay = () => {
-    const newDate = subDays(currentDate, 1)
-    router.push(`/?date=${format(newDate, 'yyyy-MM-dd')}`)
+  // Generate array of 7 days for the week
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStartDate, i))
+
+  // Group tasks by date
+  const tasksByDate = tasks.reduce((acc, task) => {
+    const dateKey = task.due_date
+    if (!acc[dateKey]) acc[dateKey] = []
+    acc[dateKey].push(task)
+    return acc
+  }, {} as Record<string, Task[]>)
+
+  const handlePrevWeek = () => {
+    const newWeekStart = subWeeks(weekStartDate, 1)
+    router.push(`/?date=${format(newWeekStart, 'yyyy-MM-dd')}`)
   }
 
-  const handleNextDay = () => {
-    const newDate = addDays(currentDate, 1)
-    router.push(`/?date=${format(newDate, 'yyyy-MM-dd')}`)
+  const handleNextWeek = () => {
+    const newWeekStart = addWeeks(weekStartDate, 1)
+    router.push(`/?date=${format(newWeekStart, 'yyyy-MM-dd')}`)
   }
 
-  const handleToday = () => {
+  const handleThisWeek = () => {
     router.push(`/?date=${format(new Date(), 'yyyy-MM-dd')}`)
   }
 
-  const handleAddTask = async (e: React.FormEvent) => {
+  const handleAddTask = async (e: React.FormEvent, date: string) => {
     e.preventDefault()
     if (!newTaskTitle.trim()) return
 
@@ -53,6 +67,11 @@ export function Dashboard({
       source: 'manual',
     })
     setNewTaskTitle('')
+    setAddingTaskForDay(null)
+  }
+
+  const toggleDayExpanded = (dateStr: string) => {
+    setExpandedDay(expandedDay === dateStr ? null : dateStr)
   }
 
   return (
@@ -74,31 +93,31 @@ export function Dashboard({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        {/* Date Navigation */}
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Week Navigation */}
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
           <button
-            onClick={handlePrevDay}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            onClick={handlePrevWeek}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            ←
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex flex-col items-center">
             <span className="text-lg font-semibold text-gray-900">
-              {format(currentDate, 'EEEE, MMM d')}
+              {format(weekStartDate, 'MMM d')} – {format(weekEndDate, 'MMM d, yyyy')}
             </span>
             <button
-              onClick={handleToday}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              onClick={handleThisWeek}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-1"
             >
-              Go to Today
+              Go to This Week
             </button>
           </div>
           <button
-            onClick={handleNextDay}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            onClick={handleNextWeek}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            →
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
@@ -113,8 +132,8 @@ export function Dashboard({
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <ListTodo className="w-4 h-4" />
-              Tasks
+              <Calendar className="w-4 h-4" />
+              Weekly View
               <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                 {tasks.length}
               </span>
@@ -135,95 +154,156 @@ export function Dashboard({
             </button>
           </div>
 
-          {/* Tasks Tab Content */}
+          {/* Weekly Tasks Tab Content */}
           {activeTab === 'tasks' && (
-            <div>
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  Tasks for {format(currentDate, 'MMM d')}
-                </h2>
-                <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                  {tasks.filter((t) => t.completed).length} / {tasks.length} done
-                </span>
-              </div>
+            <div className="divide-y divide-gray-200">
+              {weekDays.map((day) => {
+                const dateStr = format(day, 'yyyy-MM-dd')
+                const dayTasks = tasksByDate[dateStr] || []
+                const isExpanded = expandedDay === dateStr
+                const completedCount = dayTasks.filter(t => t.completed).length
+                const today = isToday(day)
 
-              <div className="divide-y divide-gray-200">
-                {tasks.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
-                    <ListTodo className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>No tasks yet for this day.</p>
-                    <p className="text-sm mt-1">Add one below or record a voice memo!</p>
-                  </div>
-                ) : (
-                  tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`group flex items-center p-4 hover:bg-gray-50 transition-colors ${
-                        task.completed ? 'bg-gray-50' : ''
+                return (
+                  <div key={dateStr} className={`${today ? 'bg-indigo-50/50' : ''}`}>
+                    {/* Day Header */}
+                    <button
+                      onClick={() => toggleDayExpanded(dateStr)}
+                      className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${
+                        today ? 'hover:bg-indigo-50' : ''
                       }`}
                     >
-                      <button
-                        onClick={() => toggleTask(task.id, !task.completed)}
-                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center transition-colors ${
-                          task.completed
-                            ? 'border-green-500 bg-green-500 text-white'
-                            : 'border-gray-300 hover:border-indigo-500'
-                        }`}
-                      >
-                        {task.completed && <Check className="w-4 h-4" />}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-sm font-medium truncate transition-all ${
-                            task.completed
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-900'
-                          }`}
-                        >
-                          {task.title}
-                        </p>
-                        {task.notes && (
-                          <p className="text-xs text-gray-500 mt-0.5 truncate">
-                            {task.notes}
-                          </p>
-                        )}
-                        {task.source !== 'manual' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 mt-1">
-                            {task.source === 'ai' ? '🤖 AI extracted' : task.source}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                          today 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {format(day, 'd')}
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${today ? 'text-indigo-600' : 'text-gray-900'}`}>
+                              {format(day, 'EEEE')}
+                            </span>
+                            {today && (
+                              <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">
+                                Today
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {format(day, 'MMMM d')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {dayTasks.length > 0 && (
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            completedCount === dayTasks.length
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {completedCount}/{dayTasks.length}
                           </span>
                         )}
+                        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`} />
                       </div>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="ml-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
+                    </button>
 
-              {/* Add Task Input */}
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <form onSubmit={handleAddTask} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Add a new task..."
-                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newTaskTitle.trim()}
-                    className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </form>
-              </div>
+                    {/* Expanded Day Content */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        {/* Tasks List */}
+                        <div className="ml-6 pl-6 border-l-2 border-gray-200 space-y-2">
+                          {dayTasks.length === 0 ? (
+                            <p className="text-sm text-gray-400 py-2">No tasks for this day</p>
+                          ) : (
+                            dayTasks.map((task) => (
+                              <div
+                                key={task.id}
+                                className={`group flex items-center gap-3 py-2 ${
+                                  task.completed ? 'opacity-60' : ''
+                                }`}
+                              >
+                                <button
+                                  onClick={() => toggleTask(task.id, !task.completed)}
+                                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                    task.completed
+                                      ? 'border-green-500 bg-green-500 text-white'
+                                      : 'border-gray-300 hover:border-indigo-500'
+                                  }`}
+                                >
+                                  {task.completed && <Check className="w-3 h-3" />}
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${
+                                    task.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+                                  }`}>
+                                    {task.title}
+                                  </p>
+                                  {task.source !== 'manual' && (
+                                    <span className="text-xs text-indigo-600">
+                                      🤖 AI extracted
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => deleteTask(task.id)}
+                                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+
+                          {/* Add Task Form */}
+                          {addingTaskForDay === dateStr ? (
+                            <form onSubmit={(e) => handleAddTask(e, dateStr)} className="flex gap-2 pt-2">
+                              <input
+                                type="text"
+                                value={newTaskTitle}
+                                onChange={(e) => setNewTaskTitle(e.target.value)}
+                                placeholder="Task title..."
+                                autoFocus
+                                className="flex-1 text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-1.5 border"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!newTaskTitle.trim()}
+                                className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                              >
+                                Add
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddingTaskForDay(null)
+                                  setNewTaskTitle('')
+                                }}
+                                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              onClick={() => setAddingTaskForDay(dateStr)}
+                              className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 pt-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add task
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -243,7 +323,7 @@ export function Dashboard({
                     </p>
                   </div>
                 </div>
-                <VoiceRecorder date={date} />
+                <VoiceRecorder date={format(new Date(), 'yyyy-MM-dd')} />
               </div>
 
               {/* Voice Memos List */}
