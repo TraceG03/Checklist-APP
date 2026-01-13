@@ -85,6 +85,8 @@ create table inspections (
   inspection_date date not null default current_date,
   status text not null default 'draft' check (status in ('draft', 'completed')),
   report_summary text,
+  closeout_qna jsonb,
+  closeout_generated_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -141,3 +143,61 @@ create policy "Users can upload their own inspection photos"
 create policy "Users can delete their own inspection photos"
   on storage.objects for delete
   using ( bucket_id = 'inspection-photos' and auth.uid()::text = (storage.foldername(name))[1] );
+
+-- PUSH NOTIFICATIONS
+-- Store browser push subscriptions per user
+create table push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz default now(),
+  unique (user_id, endpoint)
+);
+
+alter table push_subscriptions enable row level security;
+
+create policy "Users can view their own push subscriptions"
+  on push_subscriptions for select using (auth.uid() = user_id);
+
+create policy "Users can insert their own push subscriptions"
+  on push_subscriptions for insert with check (auth.uid() = user_id);
+
+create policy "Users can delete their own push subscriptions"
+  on push_subscriptions for delete using (auth.uid() = user_id);
+
+-- Notification preferences per user
+create table notification_settings (
+  user_id uuid primary key references auth.users not null default auth.uid(),
+  timezone text not null default 'UTC',
+  send_hour int not null default 8 check (send_hour >= 0 and send_hour <= 23),
+  send_minute int not null default 0 check (send_minute >= 0 and send_minute <= 59),
+  enabled boolean not null default true,
+  updated_at timestamptz default now()
+);
+
+alter table notification_settings enable row level security;
+
+create policy "Users can view their own notification settings"
+  on notification_settings for select using (auth.uid() = user_id);
+
+create policy "Users can upsert their own notification settings"
+  on notification_settings for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own notification settings"
+  on notification_settings for update using (auth.uid() = user_id);
+
+-- Log of daily sends to prevent duplicate notifications
+create table notification_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null,
+  local_date date not null,
+  sent_at timestamptz default now(),
+  unique (user_id, local_date)
+);
+
+alter table notification_logs enable row level security;
+
+create policy "Users can view their own notification logs"
+  on notification_logs for select using (auth.uid() = user_id);

@@ -9,7 +9,7 @@ import {
   addFindingWithPhoto,
   addFindingWithVoice,
   deleteFinding,
-  generateInspectionReport,
+  finishInspection,
 } from '@/app/actions/inspections'
 import {
   Plus,
@@ -45,7 +45,7 @@ export function InspectionTab({
   const [isRecording, setIsRecording] = useState(false)
   const [recordingForInspection, setRecordingForInspection] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [generatingReport, setGeneratingReport] = useState<string | null>(null)
+  const [finishingInspection, setFinishingInspection] = useState<string | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -131,14 +131,14 @@ export function InspectionTab({
     }
   }
 
-  const handleGenerateReport = async (inspectionId: string) => {
-    setGeneratingReport(inspectionId)
+  const handleFinishInspection = async (inspectionId: string) => {
+    setFinishingInspection(inspectionId)
     try {
-      await generateInspectionReport(inspectionId)
+      await finishInspection(inspectionId)
     } catch (err: any) {
-      alert(err.message || 'Failed to generate report')
+      alert(err.message || 'Failed to finish inspection')
     } finally {
-      setGeneratingReport(null)
+      setFinishingInspection(null)
     }
   }
 
@@ -271,7 +271,7 @@ export function InspectionTab({
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*"
                         capture="environment"
                         className="hidden"
                         onChange={(e) => {
@@ -286,7 +286,7 @@ export function InspectionTab({
                         className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 text-sm"
                       >
                         <Camera className="w-4 h-4" />
-                        Add Photo
+                        Add Photo/Video
                       </button>
 
                       {isRecording && recordingForInspection === inspection.id ? (
@@ -310,19 +310,19 @@ export function InspectionTab({
 
                       {findingsCount > 0 && inspection.status !== 'completed' && (
                         <button
-                          onClick={() => handleGenerateReport(inspection.id)}
-                          disabled={generatingReport === inspection.id}
+                          onClick={() => handleFinishInspection(inspection.id)}
+                          disabled={finishingInspection === inspection.id}
                           className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm ml-auto"
                         >
-                          {generatingReport === inspection.id ? (
+                          {finishingInspection === inspection.id ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
-                              Generating...
+                              Finishing...
                             </>
                           ) : (
                             <>
                               <FileText className="w-4 h-4" />
-                              Generate Report
+                              Finish Inspection
                             </>
                           )}
                         </button>
@@ -367,11 +367,29 @@ export function InspectionTab({
                                 </div>
 
                                 {finding.photo_path && (
-                                  <img
-                                    src={getPhotoUrl(finding.photo_path)}
-                                    alt={`Finding ${idx + 1}`}
-                                    className="w-full max-w-md rounded-md mb-2"
-                                  />
+                                  (() => {
+                                    const url = getPhotoUrl(finding.photo_path)
+                                    const lower = finding.photo_path.toLowerCase()
+                                    const isVideo =
+                                      lower.endsWith('.mp4') ||
+                                      lower.endsWith('.mov') ||
+                                      lower.endsWith('.webm') ||
+                                      lower.endsWith('.m4v')
+
+                                    return isVideo ? (
+                                      <video
+                                        src={url}
+                                        controls
+                                        className="w-full max-w-md rounded-md mb-2"
+                                      />
+                                    ) : (
+                                      <img
+                                        src={url}
+                                        alt={`Finding ${idx + 1}`}
+                                        className="w-full max-w-md rounded-md mb-2"
+                                      />
+                                    )
+                                  })()
                                 )}
 
                                 {finding.transcript && (
@@ -406,6 +424,44 @@ export function InspectionTab({
                           </h4>
                           <div className="prose prose-sm text-gray-700 whitespace-pre-wrap">
                             {inspection.report_summary}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Closeout Q&A */}
+                    {inspection.closeout_qna && (
+                      <div className="ml-13 pl-6 border-l-2 border-indigo-300">
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                          <h4 className="font-medium text-indigo-800 flex items-center gap-2 mb-3">
+                            <FileText className="w-4 h-4" />
+                            Daily Closeout
+                          </h4>
+                          <div className="space-y-3 text-sm text-gray-800">
+                            <div>
+                              <div className="font-semibold">Did HHR get done what we planned for?</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).hhr_done}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">Did Jaime get done what we planned for?</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).jaime_done}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">Did the other tasks/projects planned for today get accomplished?</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).other_tasks_done}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">If not, how is our timeline altered?</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).timeline_impact}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">What new tasks or information came up today that we need to plan for?</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).new_tasks_or_info}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">Add any photos or videos showing the progress made on all fronts.</div>
+                              <div className="whitespace-pre-wrap">{(inspection.closeout_qna as any).media_summary}</div>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -89,6 +89,8 @@ export type Database = {
           inspection_date: string
           status: 'draft' | 'completed'
           report_summary: string | null
+          closeout_qna: Json | null
+          closeout_generated_at: string | null
           created_at: string
           updated_at: string
         }
@@ -99,6 +101,8 @@ export type Database = {
           inspection_date?: string
           status?: 'draft' | 'completed'
           report_summary?: string | null
+          closeout_qna?: Json | null
+          closeout_generated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -109,6 +113,8 @@ export type Database = {
           inspection_date?: string
           status?: 'draft' | 'completed'
           report_summary?: string | null
+          closeout_qna?: Json | null
+          closeout_generated_at?: string | null
           created_at?: string
           updated_at?: string
         }

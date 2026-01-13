@@ -271,3 +271,126 @@ ${findingsContext}`
   revalidatePath('/')
   return reportSummary
 }
+
+export async function finishInspection(inspectionId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('Unauthorized')
+  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured')
+
+  const { data: inspection } = await supabase
+    .from('inspections')
+    .select('*')
+    .eq('id', inspectionId)
+    .single()
+
+  if (!inspection) throw new Error('Inspection not found')
+
+  const { data: findings } = await supabase
+    .from('inspection_findings')
+    .select('*')
+    .eq('inspection_id', inspectionId)
+    .order('created_at', { ascending: true })
+
+  if (!findings || findings.length === 0) {
+    throw new Error('No findings to finish inspection')
+  }
+
+  const findingsContext = findings
+    .map((f, i) => {
+      let context = `Finding ${i + 1}:`
+      if (f.notes) context += `\n  Notes: ${f.notes}`
+      if (f.transcript) context += `\n  Voice memo transcript: "${f.transcript}"`
+      if (f.photo_path) context += `\n  Photo/Video: ${f.photo_path}`
+      if (f.voice_memo_path) context += `\n  Voice file: ${f.voice_memo_path}`
+      return context
+    })
+    .join('\n\n')
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: `You are a daily construction/property inspection assistant.
+
+Fill out the following questions using ONLY the inspection findings (notes + transcripts + photos/videos references).
+If something is not mentioned, answer \"Unknown\" and suggest what info to capture next time.
+
+Return JSON with exactly these keys:
+- hhr_done (string)
+- jaime_done (string)
+- other_tasks_done (string)
+- timeline_impact (string)
+- new_tasks_or_info (string)
+- media_summary (string)
+
+Write in a concise, professional tone. Use short paragraphs / bullet points where helpful.`,
+      },
+      {
+        role: 'user',
+        content: `Inspection: ${inspection.title}
+Date: ${inspection.inspection_date}
+
+Findings:
+${findingsContext}
+
+Questions to answer:
+Did HHR get done what we planned for?
+Did Jaime get done what we planned for?
+Did the other tasks/projects planned for today get accomplished?
+If not, how is our timeline altered?
+What new tasks or information came up today that we need to plan for?
+Add any photos or videos showing the progress made on all fronts.`,
+      },
+    ],
+  })
+
+  const qnaRaw = completion.choices[0].message.content || '{}'
+  const qna = JSON.parse(qnaRaw)
+
+  // Also (re)generate the report summary so Finish Inspection is a one-click action.
+  const report = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: `You are a professional daily inspection report writer.
+
+Generate a formal inspection report summary based on the findings provided.
+The report should include:
+1. Executive Summary (2-3 sentences overview)
+2. Key Findings (bullet points)
+3. Recommendations (actionable items)
+
+Keep it concise.`,
+      },
+      {
+        role: 'user',
+        content: `Inspection: ${inspection.title}
+Date: ${inspection.inspection_date}
+
+Findings:
+${findingsContext}`,
+      },
+    ],
+  })
+
+  const reportSummary = report.choices[0].message.content
+
+  await supabase
+    .from('inspections')
+    .update({
+      report_summary: reportSummary,
+      closeout_qna: qna,
+      closeout_generated_at: new Date().toISOString(),
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', inspectionId)
+
+  revalidatePath('/')
+  return { report_summary: reportSummary, closeout_qna: qna }
+}
