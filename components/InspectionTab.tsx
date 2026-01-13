@@ -49,7 +49,8 @@ export function InspectionTab({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   // New inspection form state
   const [newTitle, setNewTitle] = useState('')
@@ -269,7 +270,7 @@ export function InspectionTab({
                     {/* Action Buttons */}
                     <div className="flex gap-2 ml-13 pl-6 border-l-2 border-gray-200">
                       <input
-                        ref={fileInputRef}
+                        ref={cameraInputRef}
                         type="file"
                         accept="image/*,video/*"
                         capture="environment"
@@ -280,13 +281,32 @@ export function InspectionTab({
                           e.target.value = ''
                         }}
                       />
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handlePhotoUpload(inspection.id, file)
+                          e.target.value = ''
+                        }}
+                      />
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => cameraInputRef.current?.click()}
                         disabled={isProcessing}
                         className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 text-sm"
                       >
                         <Camera className="w-4 h-4" />
-                        Add Photo/Video
+                        Take Photo/Video
+                      </button>
+                      <button
+                        onClick={() => galleryInputRef.current?.click()}
+                        disabled={isProcessing}
+                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm"
+                      >
+                        <Image className="w-4 h-4" />
+                        Upload from Gallery
                       </button>
 
                       {isRecording && recordingForInspection === inspection.id ? (
