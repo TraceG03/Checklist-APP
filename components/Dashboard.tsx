@@ -7,25 +7,40 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { addTask, toggleTask, deleteTask, signOut } from '@/app/actions/tasks'
 import { deleteVoiceMemo } from '@/app/actions/voice'
-import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar } from 'lucide-react'
+import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar, ClipboardCheck } from 'lucide-react'
 import { VoiceRecorder } from './VoiceRecorder'
+import { InspectionTab } from './InspectionTab'
 
 type Task = Database['public']['Tables']['tasks']['Row']
 type VoiceMemo = Database['public']['Tables']['voice_memos']['Row']
+type Inspection = Database['public']['Tables']['inspections']['Row']
+type Finding = Database['public']['Tables']['inspection_findings']['Row']
+
+interface InspectionWithFindings extends Inspection {
+  inspection_findings: Finding[]
+}
 
 export function Dashboard({
   user,
   tasks,
   voiceMemos,
+  inspections,
   weekStart,
+  supabaseUrl,
 }: {
   user: User
   tasks: Task[]
   voiceMemos: VoiceMemo[]
+  inspections: InspectionWithFindings[]
   weekStart: string
+  supabaseUrl: string
 }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'tasks' | 'voice'>('tasks')
+  const [activeTab, setActiveTab] = useState<'tasks' | 'voice' | 'inspections'>('tasks')
+
+  const getPhotoUrl = (path: string) => {
+    return `${supabaseUrl}/storage/v1/object/public/inspection-photos/${path}`
+  }
   const [expandedDay, setExpandedDay] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'))
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingTaskForDay, setAddingTaskForDay] = useState<string | null>(null)
@@ -148,9 +163,23 @@ export function Dashboard({
               }`}
             >
               <Mic className="w-4 h-4" />
-              Voice Memos
+              Voice
               <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                 {voiceMemos.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('inspections')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'inspections'
+                  ? 'text-amber-600 border-b-2 border-amber-600 bg-amber-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              Inspections
+              <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                {inspections.length}
               </span>
             </button>
           </div>
@@ -390,6 +419,14 @@ export function Dashboard({
                 )}
               </div>
             </div>
+          )}
+
+          {/* Inspections Tab Content */}
+          {activeTab === 'inspections' && (
+            <InspectionTab
+              inspections={inspections}
+              getPhotoUrl={getPhotoUrl}
+            />
           )}
         </div>
       </main>

@@ -43,12 +43,30 @@ export default async function Home({
     .order('created_at', { ascending: false })
     .limit(20)
 
+  // Fetch inspections with findings
+  const { data: inspectionsData } = await supabase
+    .from('inspections')
+    .select('*, inspection_findings(*)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  // Type cast to handle the nested relationship
+  const inspections = (inspectionsData || []) as any[]
+
+  // Generate photo URL helper
+  const getPhotoUrl = (path: string) => {
+    const { data } = supabase.storage.from('inspection-photos').getPublicUrl(path)
+    return data.publicUrl
+  }
+
   return (
     <Dashboard
       user={user}
       tasks={tasks || []}
       voiceMemos={voiceMemos || []}
+      inspections={inspections || []}
       weekStart={format(weekStart, 'yyyy-MM-dd')}
+      supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
     />
   )
 }

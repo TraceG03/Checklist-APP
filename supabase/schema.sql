@@ -76,3 +76,69 @@ create policy "Users can read their own voice memos"
 create policy "Users can upload their own voice memos"
   on storage.objects for insert
   with check ( bucket_id = 'voice-memos' and auth.uid()::text = (storage.foldername(name))[1] );
+
+-- INSPECTIONS TABLE
+create table inspections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null default auth.uid(),
+  title text not null,
+  inspection_type text not null check (inspection_type in ('construction', 'property')),
+  location text,
+  status text not null default 'draft' check (status in ('draft', 'completed')),
+  report_summary text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table inspections enable row level security;
+
+create policy "Users can view their own inspections"
+  on inspections for select using (auth.uid() = user_id);
+
+create policy "Users can insert their own inspections"
+  on inspections for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own inspections"
+  on inspections for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own inspections"
+  on inspections for delete using (auth.uid() = user_id);
+
+-- INSPECTION FINDINGS TABLE
+create table inspection_findings (
+  id uuid primary key default gen_random_uuid(),
+  inspection_id uuid references inspections on delete cascade not null,
+  user_id uuid references auth.users not null default auth.uid(),
+  photo_path text,
+  voice_memo_path text,
+  transcript text,
+  notes text,
+  created_at timestamptz default now()
+);
+
+alter table inspection_findings enable row level security;
+
+create policy "Users can view their own findings"
+  on inspection_findings for select using (auth.uid() = user_id);
+
+create policy "Users can insert their own findings"
+  on inspection_findings for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own findings"
+  on inspection_findings for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own findings"
+  on inspection_findings for delete using (auth.uid() = user_id);
+
+-- STORAGE POLICIES FOR INSPECTION PHOTOS
+create policy "Users can read their own inspection photos"
+  on storage.objects for select
+  using ( bucket_id = 'inspection-photos' and auth.uid()::text = (storage.foldername(name))[1] );
+
+create policy "Users can upload their own inspection photos"
+  on storage.objects for insert
+  with check ( bucket_id = 'inspection-photos' and auth.uid()::text = (storage.foldername(name))[1] );
+
+create policy "Users can delete their own inspection photos"
+  on storage.objects for delete
+  using ( bucket_id = 'inspection-photos' and auth.uid()::text = (storage.foldername(name))[1] );

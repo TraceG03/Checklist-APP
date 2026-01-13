@@ -81,6 +81,75 @@ export type Database = {
         }
         Relationships: []
       }
+      inspections: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          inspection_type: 'construction' | 'property'
+          location: string | null
+          status: 'draft' | 'completed'
+          report_summary: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          title: string
+          inspection_type: 'construction' | 'property'
+          location?: string | null
+          status?: 'draft' | 'completed'
+          report_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          inspection_type?: 'construction' | 'property'
+          location?: string | null
+          status?: 'draft' | 'completed'
+          report_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inspection_findings: {
+        Row: {
+          id: string
+          inspection_id: string
+          user_id: string
+          photo_path: string | null
+          voice_memo_path: string | null
+          transcript: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          inspection_id: string
+          user_id?: string
+          photo_path?: string | null
+          voice_memo_path?: string | null
+          transcript?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          inspection_id?: string
+          user_id?: string
+          photo_path?: string | null
+          voice_memo_path?: string | null
+          transcript?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
