@@ -267,94 +267,99 @@ export function InspectionTab({
                 {/* Expanded Content */}
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-4">
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 ml-13 pl-6 border-l-2 border-gray-200">
-                      <input
-                        ref={cameraInputRef}
-                        type="file"
-                        accept="image/*,video/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handlePhotoUpload(inspection.id, file)
-                          e.target.value = ''
-                        }}
-                      />
-                      <input
-                        ref={galleryInputRef}
-                        type="file"
-                        accept="image/*,video/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handlePhotoUpload(inspection.id, file)
-                          e.target.value = ''
-                        }}
-                      />
-                      <button
-                        onClick={() => cameraInputRef.current?.click()}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 text-sm"
-                      >
-                        <Camera className="w-4 h-4" />
-                        Take Photo/Video
-                      </button>
-                      <button
-                        onClick={() => galleryInputRef.current?.click()}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm"
-                      >
-                        <Image className="w-4 h-4" />
-                        Upload from Gallery
-                      </button>
+                    {/* Action Buttons (mobile-safe wrapping for iPhone Safari) */}
+                    <div className="ml-13 pl-6 border-l-2 border-gray-200">
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          ref={cameraInputRef}
+                          type="file"
+                          accept="image/*,video/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handlePhotoUpload(inspection.id, file)
+                            e.target.value = ''
+                          }}
+                        />
+                        <input
+                          ref={galleryInputRef}
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handlePhotoUpload(inspection.id, file)
+                            e.target.value = ''
+                          }}
+                        />
 
-                      {isRecording && recordingForInspection === inspection.id ? (
                         <button
-                          onClick={stopRecording}
-                          className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-sm animate-pulse"
+                          onClick={() => cameraInputRef.current?.click()}
+                          disabled={isProcessing}
+                          className="flex-1 min-w-[150px] flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 text-sm"
                         >
-                          <Square className="w-4 h-4 fill-current" />
-                          Stop Recording
+                          <Camera className="w-4 h-4" />
+                          Take Photo/Video
                         </button>
-                      ) : (
                         <button
-                          onClick={() => startRecording(inspection.id)}
-                          disabled={isProcessing || isRecording}
-                          className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm"
+                          onClick={() => galleryInputRef.current?.click()}
+                          disabled={isProcessing}
+                          className="flex-1 min-w-[150px] flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm"
                         >
-                          <Mic className="w-4 h-4" />
-                          Record Finding
+                          <Image className="w-4 h-4" />
+                          Upload from Gallery
                         </button>
-                      )}
 
-                      {findingsCount > 0 && inspection.status !== 'completed' && (
-                        <button
-                          onClick={() => handleFinishInspection(inspection.id)}
-                          disabled={finishingInspection === inspection.id}
-                          className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm ml-auto"
-                        >
-                          {finishingInspection === inspection.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Finishing...
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="w-4 h-4" />
-                              Finish Inspection
-                            </>
+                        {isRecording && recordingForInspection === inspection.id ? (
+                          <button
+                            onClick={stopRecording}
+                            className="flex-1 min-w-[150px] flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-sm animate-pulse"
+                          >
+                            <Square className="w-4 h-4 fill-current" />
+                            Stop Recording
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => startRecording(inspection.id)}
+                            disabled={isProcessing || isRecording}
+                            className="flex-1 min-w-[150px] flex items-center justify-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm"
+                          >
+                            <Mic className="w-4 h-4" />
+                            Record Finding
+                          </button>
+                        )}
+
+                        <div className="w-full flex justify-end gap-2">
+                          {findingsCount > 0 && inspection.status !== 'completed' && (
+                            <button
+                              onClick={() => handleFinishInspection(inspection.id)}
+                              disabled={finishingInspection === inspection.id}
+                              className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm"
+                            >
+                              {finishingInspection === inspection.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Finishing...
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="w-4 h-4" />
+                                  Finish Inspection
+                                </>
+                              )}
+                            </button>
                           )}
-                        </button>
-                      )}
 
-                      <button
-                        onClick={() => deleteInspection(inspection.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 ml-auto"
-                        title="Delete inspection"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          <button
+                            onClick={() => deleteInspection(inspection.id)}
+                            className="p-2 text-gray-400 hover:text-red-500"
+                            title="Delete inspection"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Findings List */}
@@ -413,7 +418,7 @@ export function InspectionTab({
                                 )}
 
                                 {finding.transcript && (
-                                  <p className="text-sm text-gray-700 bg-white rounded p-2 border border-gray-200">
+                                  <p className="text-sm text-gray-700 bg-white rounded p-2 border border-gray-200 break-words">
                                     "{finding.transcript}"
                                   </p>
                                 )}
