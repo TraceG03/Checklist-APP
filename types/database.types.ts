@@ -18,6 +18,7 @@ export type Database = {
           due_date: string | null
           completed: boolean
           source: 'manual' | 'ai' | 'voice'
+          task_category: 'personal' | 'work'
           created_at: string
           updated_at: string
         }
@@ -29,6 +30,7 @@ export type Database = {
           due_date?: string | null
           completed?: boolean
           source?: 'manual' | 'ai' | 'voice'
+          task_category?: 'personal' | 'work'
           created_at?: string
           updated_at?: string
         }
@@ -40,6 +42,7 @@ export type Database = {
           due_date?: string | null
           completed?: boolean
           source?: 'manual' | 'ai' | 'voice'
+          task_category?: 'personal' | 'work'
           created_at?: string
           updated_at?: string
         }
@@ -55,6 +58,7 @@ export type Database = {
           transcript_status: 'pending' | 'done' | 'error'
           extract_status: 'pending' | 'done' | 'error'
           extracted_task_count: number
+          task_category: 'personal' | 'work'
           error: string | null
         }
         Insert: {
@@ -66,6 +70,7 @@ export type Database = {
           transcript_status?: 'pending' | 'done' | 'error'
           extract_status?: 'pending' | 'done' | 'error'
           extracted_task_count?: number
+          task_category?: 'personal' | 'work'
           error?: string | null
         }
         Update: {
@@ -77,6 +82,7 @@ export type Database = {
           transcript_status?: 'pending' | 'done' | 'error'
           extract_status?: 'pending' | 'done' | 'error'
           extracted_task_count?: number
+          task_category?: 'personal' | 'work'
           error?: string | null
         }
         Relationships: []

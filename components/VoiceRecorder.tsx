@@ -2,11 +2,12 @@
 
 import { useState, useRef } from 'react'
 import { processVoiceMemo } from '@/app/actions/voice'
-import { Mic, Square, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Mic, Square, Loader2, CheckCircle, AlertCircle, Briefcase, User } from 'lucide-react'
 
 export function VoiceRecorder({ date }: { date: string }) {
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [taskCategory, setTaskCategory] = useState<'personal' | 'work'>('personal')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
@@ -56,7 +57,7 @@ export function VoiceRecorder({ date }: { date: string }) {
     formData.append('audio', file)
 
     try {
-      const res = await processVoiceMemo(formData, date)
+      const res = await processVoiceMemo(formData, date, taskCategory)
       if (!res.ok) {
         setErrorMessage(res.error)
         setStatus('error')
@@ -75,6 +76,36 @@ export function VoiceRecorder({ date }: { date: string }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setTaskCategory('personal')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+            taskCategory === 'personal'
+              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+          disabled={status !== 'idle'}
+          title="Personal tasks"
+        >
+          <User className="w-4 h-4" />
+          Personal
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskCategory('work')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+            taskCategory === 'work'
+              ? 'bg-amber-50 border-amber-300 text-amber-800'
+              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+          disabled={status !== 'idle'}
+          title="Work tasks"
+        >
+          <Briefcase className="w-4 h-4" />
+          Work
+        </button>
+      </div>
       {status === 'idle' && (
         <button
           onClick={startRecording}

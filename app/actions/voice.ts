@@ -12,7 +12,8 @@ type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export async function processVoiceMemo(
   formData: FormData,
-  date: string
+  date: string,
+  taskCategory: 'personal' | 'work' = 'personal'
 ): Promise<ActionResult<{ count: number }>> {
   const file = formData.get('audio') as File
   if (!file) {
@@ -48,6 +49,7 @@ export async function processVoiceMemo(
       user_id: user.id,
       transcript_status: 'pending',
       extract_status: 'pending',
+      task_category: taskCategory,
     })
     .select()
     .single()
@@ -112,6 +114,7 @@ export async function processVoiceMemo(
         notes: t.notes || null,
         due_date: t.due_date || date,
         source: 'ai',
+        task_category: taskCategory,
         completed: false,
       }))
 

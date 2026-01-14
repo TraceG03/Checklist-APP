@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { addTask, toggleTask, deleteTask, signOut, updateTask } from '@/app/actions/tasks'
 import { deleteVoiceMemo } from '@/app/actions/voice'
-import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar, ClipboardCheck } from 'lucide-react'
+import { Check, Trash2, Plus, LogOut, Mic, ChevronLeft, ChevronRight, ListTodo, FileAudio, Calendar, ClipboardCheck, Briefcase } from 'lucide-react'
 import { VoiceRecorder } from './VoiceRecorder'
 import { InspectionTab } from './InspectionTab'
 
@@ -36,7 +36,7 @@ export function Dashboard({
   supabaseUrl: string
 }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'tasks' | 'voice' | 'inspections'>('tasks')
+  const [activeTab, setActiveTab] = useState<'tasks' | 'work' | 'voice' | 'inspections'>('tasks')
 
   const getPhotoUrl = (path: string) => {
     return `${supabaseUrl}/storage/v1/object/public/inspection-photos/${path}`
@@ -52,6 +52,16 @@ export function Dashboard({
 
   const undatedTasks = tasks.filter((t) => !t.due_date)
   const datedTasks = tasks.filter((t) => !!t.due_date)
+
+  const workTasks = tasks.filter((t) => t.task_category === 'work')
+  const datedWorkTasks = workTasks.filter((t) => !!t.due_date)
+
+  const workTasksByDate = datedWorkTasks.reduce((acc, task) => {
+    const dateKey = task.due_date as string
+    if (!acc[dateKey]) acc[dateKey] = []
+    acc[dateKey].push(task)
+    return acc
+  }, {} as Record<string, Task[]>)
 
   // Group only dated tasks by date
   const tasksByDate = datedTasks.reduce((acc, task) => {
@@ -154,6 +164,20 @@ export function Dashboard({
               Weekly View
               <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                 {tasks.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('work')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'work'
+                  ? 'text-slate-800 border-b-2 border-slate-800 bg-slate-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Briefcase className="w-4 h-4" />
+              Work Tasks
+              <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                {workTasks.length}
               </span>
             </button>
             <button
@@ -404,6 +428,208 @@ export function Dashboard({
                           <Plus className="w-3 h-3" />
                           Add task
                         </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Work Tasks Tab Content (filtered) */}
+          {activeTab === 'work' && (
+            <div className="p-6 space-y-8">
+              <section className="space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-slate-800" />
+                    Work Tasks
+                  </h2>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                    {workTasks.length}
+                  </span>
+                </div>
+
+                {/* Add undated work task */}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!newTaskTitle.trim()) return
+                    await addTask({
+                      title: newTaskTitle,
+                      due_date: null,
+                      source: 'manual',
+                      task_category: 'work',
+                    })
+                    setNewTaskTitle('')
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Add a work task (no date)..."
+                    className="flex-1 rounded border-gray-300 px-3 py-2 text-sm border focus:border-slate-500 focus:ring-slate-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newTaskTitle.trim()}
+                    className="inline-flex items-center gap-2 rounded bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-900 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add
+                  </button>
+                </form>
+
+                <div className="space-y-2">
+                  {workTasks.length === 0 ? (
+                    <div className="text-sm text-gray-500">No work tasks yet.</div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {workTasks.map((task) => (
+                        <li key={task.id} className="group">
+                          <div className="flex items-start gap-3">
+                            <button
+                              onClick={() => toggleTask(task.id, !task.completed)}
+                              className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                task.completed
+                                  ? 'border-green-500 bg-green-500 text-white'
+                                  : 'border-gray-400 hover:border-slate-600'
+                              }`}
+                              title="Toggle complete"
+                            >
+                              {task.completed && <Check className="w-3 h-3" />}
+                            </button>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400 select-none">•</span>
+                                <span
+                                  className={`text-sm ${
+                                    task.completed
+                                      ? 'text-gray-400 line-through'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {task.title}
+                                </span>
+                                {task.source !== 'manual' && (
+                                  <span className="text-xs text-slate-700">(AI)</span>
+                                )}
+                              </div>
+                              {task.notes && (
+                                <div className="text-xs text-gray-500 mt-0.5 ml-5">
+                                  {task.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={task.due_date || ''}
+                                onChange={(e) =>
+                                  handleAssignDate(
+                                    task.id,
+                                    e.target.value ? e.target.value : null
+                                  )
+                                }
+                                className="text-xs rounded border-gray-300 border px-2 py-1 bg-white"
+                                title="Assign to a day (optional)"
+                              />
+                              {task.due_date && (
+                                <button
+                                  onClick={() => handleAssignDate(task.id, null)}
+                                  className="text-xs text-gray-400 hover:text-gray-700"
+                                  title="Remove date"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                              <button
+                                onClick={() => deleteTask(task.id)}
+                                className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Delete task"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+
+              {/* Weekly Document View (work tasks with a date only) */}
+              {weekDays.map((day) => {
+                const dateStr = format(day, 'yyyy-MM-dd')
+                const dayTasks = workTasksByDate[dateStr] || []
+                const today = isToday(day)
+
+                return (
+                  <div key={dateStr} className="space-y-2">
+                    <div
+                      className={`flex items-center justify-between border-b-2 pb-2 ${
+                        today ? 'border-slate-800' : 'border-gray-300'
+                      }`}
+                    >
+                      <h3
+                        className={`text-lg font-bold ${
+                          today ? 'text-slate-900' : 'text-gray-800'
+                        }`}
+                      >
+                        {format(day, 'EEEE, MMMM d')}
+                        {today && (
+                          <span className="ml-2 text-xs bg-slate-900 text-white px-2 py-0.5 rounded-full font-normal">
+                            Today
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+
+                    <div className="pl-4">
+                      {dayTasks.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic">No work tasks scheduled</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {dayTasks.map((task) => (
+                            <li key={task.id} className="group flex items-start gap-3">
+                              <button
+                                onClick={() => toggleTask(task.id, !task.completed)}
+                                className={`mt-1 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                  task.completed
+                                    ? 'border-green-500 bg-green-500 text-white'
+                                    : 'border-gray-400 hover:border-slate-600'
+                                }`}
+                              >
+                                {task.completed && <Check className="w-3 h-3" />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <span
+                                  className={`text-sm ${
+                                    task.completed
+                                      ? 'text-gray-400 line-through'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {task.title}
+                                </span>
+                                {task.source !== 'manual' && (
+                                  <span className="ml-2 text-xs text-slate-700">(AI)</span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => deleteTask(task.id)}
+                                className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   </div>

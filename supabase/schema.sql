@@ -10,6 +10,7 @@ create table tasks (
   due_date date,
   completed boolean default false,
   source text not null default 'manual' check (source in ('manual', 'ai', 'voice')),
+  task_category text not null default 'personal' check (task_category in ('personal', 'work')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -42,6 +43,7 @@ create table voice_memos (
   transcript_status text not null default 'pending' check (transcript_status in ('pending', 'done', 'error')),
   extract_status text not null default 'pending' check (extract_status in ('pending', 'done', 'error')),
   extracted_task_count int default 0,
+  task_category text not null default 'personal' check (task_category in ('personal', 'work')),
   error text
 );
 
